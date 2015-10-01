@@ -1,0 +1,62 @@
+import java.io.File
+
+class Node(val value: Int) {
+    public val nodes_with_higher_value: MutableList<Node> = arrayListOf()
+    public var investigated = false
+}
+
+data class Winner(var len: Int, var dropping: Int)
+
+fun Node.is_reachable_from(other: Node?): Boolean = (other?.value ?: 0) > this.value
+
+fun main(params: Array<String>) {
+    val lines = File("map.txt").readLines(Charsets.UTF_8)
+    val nodes = arrayListOf<List<Node>>()
+    lines.drop(1).forEachIndexed { y, line ->
+        val nodes_of_this_line = arrayListOf<Node>()
+        nodes.add(nodes_of_this_line)
+        line.split(" ").map { it.toInt() }.forEachIndexed { x, value ->
+            val node = Node(value)
+            attach_to_neighbours(x, y, node, nodes);
+            nodes_of_this_line.add(node)
+        }
+    }
+
+    val winner = Winner(0, 0)
+    nodes.flatten().forEach {
+        if (!it.investigated) {
+            val last_cell = it
+            rec(last_cell, last_cell, 1, winner)
+        }
+    }
+    println(winner)
+}
+
+fun rec(last_cell: Node, parent: Node, len: Int, winner: Winner) {
+    parent.nodes_with_higher_value.forEach {
+        rec(last_cell, it, len+1, winner)
+    }
+    val dropping = parent.value - last_cell.value
+    if (len > winner.len || (len == winner.len && dropping > winner.dropping)) {
+        winner.len = len
+        winner.dropping = dropping
+    }
+    parent.investigated = true
+}
+
+
+fun attach_to_neighbours(x: Int, y: Int, node: Node, nodes: List<List<Node>>) {
+    val upper_neighbour = nodes.getOrNull(y-1)?.getOrNull(x)
+    if (node.is_reachable_from(upper_neighbour)) {
+        node.nodes_with_higher_value.add(upper_neighbour!!)
+    } else if (upper_neighbour?.is_reachable_from(node) ?: false) {
+        upper_neighbour!!.nodes_with_higher_value.add(node)
+    }
+
+    val left_neighbour = nodes.getOrNull(y)?.getOrNull(x-1)
+    if (node.is_reachable_from(left_neighbour)) {
+        node.nodes_with_higher_value.add(left_neighbour!!)
+    } else if (left_neighbour?.is_reachable_from(node) ?: false) {
+        left_neighbour!!.nodes_with_higher_value.add(node)
+    }
+}
